@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<style type="text/css">
+
+  #my_dataviz {
+    position: absolute;
+    top:80px;
+  }
+  #result_type_filter {
+    position: absolute;
+    top: 25px;  
+    left: 550px;
+  }
+  #pitch_type_filter {
+    position: absolute;
+    top: 25px;  
+    left: 800px;
+  }  
+  #la_filter {
+    position: absolute;
+    top: 230px;  
+    left: 800px;
+  }  
+
+  #datefilter {
+    position: absolute;
+    top: 25px;  
+    left: 50px;
+  }
+  #parkSelect {
+    position: absolute;
+    top: 65px;  
+    left: 50px;
+  }
+  #teamlogo{
+    position: absolute;
+    top: 280px;  
+    left: 770px;
+  }
+  #mugshot{
+    position: absolute;
+    top:480px;
+    Left:7700px;
+  }
+  #jsontable{
+    position: absolute;
+    top:325px;
+    left:550px;
+  }
+  #ballpark{
+    position:absolute;
+    top: 80px;
+  }
+
+</style>
+
+<!-- Load d3.js -->
+<script src="https://d3js.org/d3.v4.js"></script>
+
+<!-- Initialize a select button -->
+
+<div id="datefilter">
+  <b> Pitcher / Batter Selection:  </b>
+  <select name="batter_pitcher" id="batter_pitcher">
+        <option value ="battername">Batters </option>
+        <option value ="pitchername">Pitchers </option>
+  </select>
+  <b> </b>
+  <select id="selectButton"></select>
+  <br>
+  <b>Date Filter begin/end:</b>
+  <select id="datefilter_begin"></select>
+  <select id="datefilter_end"></select>
+</div>
+
+<div id="parkSelect">
+  <b> Park Overlay:  </b>
+  <select name="park" id="parkid">
+        <option value ="10">Oakland Coliseum </option>
+        <option value ="2392">Minute Maid Park </option>
+        <option value ="13">Globe Life Park in Arlington </option>
+        <option value ="1">Angel Stadium </option>
+        <option value ="680">T-Mobile Park </option>
+        <option value ="12">Tropicana Field </option>
+  </select>
+</div>
+
+<!-- // load in the image for the park overlay-->
+<div id= "teamlogo">
+</div>
+
+<div id= "mugshot">
+</div>
+
+<div id= "jsontable">
+</div>
+
+<div id= "ballpark">
+</div>
+
+<!-- Create a div where the graph will take place -->
+<div id="my_dataviz"></div>
+
+<div id="la_filter">
+  <b> LA Min/Max Filter:  </b>
+    <input type="text" id="la_min" name="launch_angle_min">
+    <input type="text" id="la_max" name="launch_angle_max">
+  <!-- <select id="lafilter_end"></select> -->
+</div>
+
+<div id="result_type_filter">
+  <b>Result Type Filter:</b>
+      <br>
+  <input name="v" value="field_out" type="checkbox" checked >field_out </input>
+      <br>
+  <input name="v" value="home_run" type="checkbox" checked >home_run </input>
+      <br>
+  <input name="v" value="single" type="checkbox" checked >single </input>
+      <br>
+  <input name="v" value="grounded_into_double_play" type="checkbox" checked >grounded_into_double_play </input>
+      <br>
+  <input name="v" value="double" type="checkbox" checked >double </input>
+      <br>
+  <input name="v" value="force_out" type="checkbox" checked >force_out </input>
+      <br>
+  <input name="v" value="double_play" type="checkbox" checked >double_play </input>
+      <br>
+  <input name="v" value="field_error" type="checkbox" checked >field_error </input>
+      <br>
+  <input name="v" value="sac_fly" type="checkbox" checked >sac_fly </input>
+      <br>
+  <input name="v" value="triple" type="checkbox" checked >triple </input>
+      <br>
+  <input name="v" value="fielders_choice_out" type="checkbox" checked >fielders_choice_out </input>
+      <br>
+  <input name="v" value="hit_by_pitch" type="checkbox" checked >hit_by_pitch </input>
+      <br>
+  <input name="v" value="fielders_choice" type="checkbox" checked >fielders_choice </input>
+      <br>
+</div>
+
+<div id="pitch_type_filter">
+  <b>Pitch Type Filter:</b>
+      <br>
+  <input name="W" value="KC" type="checkbox" checked >KC - Knuckle-Curve </input>
+      <br>
+  <input name="W" value="FT" type="checkbox" checked >FT - Two-Seam Fastball </input>
+      <br>
+  <input name="W" value="FF" type="checkbox" checked >FF - Four-Seam Fastball </input>
+      <br>
+  <input name="W" value="SI" type="checkbox" checked >SI - Sinker </input>
+      <br>
+  <input name="W" value="SL" type="checkbox" checked >SL - Slider</input>
+      <br>
+  <input name="W" value="FS" type="checkbox" checked >FS - Splitter </input>
+      <br>
+  <input name="W" value="CU" type="checkbox" checked >CU - Curveball </input>
+      <br>
+  <input name="W" value="FC" type="checkbox" checked >FC - Cutter </input>
+      <br>
+  <input name="W" value="CH" type="checkbox" checked >CH - Changeup </input>
+      <br>
+</div>
+
+
+<!-- Color Scale -->
+<script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+
+<script>
+
+// set the dimensions and margins of the graph
+var margin = {top: 5, right: 0, bottom: 30, left: 60},
+    width = 500 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
+
+// append the svg object to the body of the page
+var svg = d3.select("#my_dataviz")
+  .append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform",
+          "translate(" + margin.left + "," + margin.top + ")");
+
+// setting up variables for app functionalities / displays
+var team_logo = d3.select("#teamlogo")
+  .append("svg")
+  .attr('width',150)
+  .attr('height',150)
+
+var headshot = d3.select("#teamlogo")
+  .append("svg")
+  .attr('width',150)
+  .attr('height',150)
+
+var jsonsvg = d3.select("#jsontable")
+  .attr('width', 175)
+  .attr('heigth', 175)
+
+var ballpark = d3.select("#ballpark")
+  .append("svg")
+    .attr("width", width + margin.left + margin.right + 50)
+    .attr("height", height + margin.top + margin.bottom)
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+
+// var la_min = d3.inputbox();
+var la_min = d3.select("#la_min").style("width","80px")
+var la_max = d3.select("#la_max").style("width","80px")
+
+// functions to update displays and information
+var update_team_logo = function(teamid){
+  var teamlogo_url = 'https://www.mlbstatic.com/team-logos/' + teamid + '.svg';
+  team_logo.select("svg").remove();
+  team_logo.append("svg")
+    .append("image")
+    .attr("xlink:href",teamlogo_url)
+    .attr('width', 150)
+    .attr('height', 150);
+};
+
+var update_mugshot = function(playerid){
+  var headshot_url = 'https://securea.mlb.com/mlb/images/players/head_shot/' + playerid + '.jpg';
+  headshot.select("svg").remove();
+  headshot.append("svg")
+    .append("image")
+    .attr("xlink:href",headshot_url)
+    .attr('width', 150)
+    .attr('height', 150);
+};
+
+var update_json = function(playerid){
+  // get player info
+  var player_info_url = "http://statsapi.mlb.com/api/v1/people/" + playerid + '.json';
+  d3.json(player_info_url,function(jsondata) {
+      var player_fullname = "<b>Player Name:</b>" + jsondata.people[0].fullName
+      jsonsvg.selectAll("text").remove();
+      jsonsvg.append("text")
+        .attr("fill","black")
+        .style("text-anchor", "middle")
+        .html(player_fullname)
+      jsonsvg.append("text")
+        .html("<br>")      
+
+      var batside = "<b>Bat Side:</b>" + jsondata.people[0].batSide.description 
+      jsonsvg.append("text")
+        .attr("dy", "1em")
+        .attr("fill","black")
+        .style("text-anchor", "middle")
+        .html(batside)
+      jsonsvg.append("text")
+        .html("<br>")
+
+      var position = "<b>Primary Position:</b>" + jsondata.people[0].primaryPosition.name
+      jsonsvg.append("text")
+        .attr("fill","black")
+        .style("text-anchor", "middle")
+        .html(position)
+      jsonsvg.append("text")
+        .html("<br>")
+
+      var birthDate = "<b>Birth Date:</b>" + jsondata.people[0].birthDate + "<b> Age: </b>" + jsondata.people[0].currentAge
+      var age = "<b>"
+      jsonsvg.append("text")
+        .attr("dy", "1em")
+        .attr("fill","black")
+        .style("text-anchor", "middle")
+        .html(birthDate)
+      jsonsvg.append("text")
+        .html("<br>")
+
+  })// end d3.json()
+
+  // get player stats, can display anything from the json file here
+  // var player_stats_url = "https://statsapi.mlb.com/api/v1/people/" + playerid + "?hydrate=stats(group=[hitting,pitching,fielding],type=[yearByYear])"
+  // d3.json(player_stats_url, function(jsonstats){
+  //     // jsonstats.people[0].stats[0].splits
+  //     var stats = function(d,i) {
+  //       return d.people[0].stats[0].splits[i];
+  //       console.log(d.people[0].stats[0].splits[i])
+  //     }
+  //     // console.log(jsonstats.people[0].stats[0].splits)
+  //     // console.log(stats)
+  // })//end d3.json
+
+}//end update_json
+
+var update_ballpark = function(parkid){
+  // load in the image for the park overlay
+  var park_url = 'https://prod-gameday.mlbstatic.com/responsive-gameday-assets/1.2.0/images/fields/'+ parkid + '.svg'
+  ballpark.select("svg").remove();
+  ballpark.append("svg")
+  .append("image")
+    .attr('xlink:href', park_url)
+    .style('opacity', 0.5)
+    .attr("width", width - margin.left - margin.right + 25)
+    .attr("height", height - margin.top - margin.bottom + 10 )
+    .attr("transform",
+          "translate(" + 25 + "," + (-15) + ")");
+}
+
+// generate ballpark initially
+update_ballpark(d3.select("#parkid").property("value"))
+// add listener for the #parkid dropdown change, update park overlay
+d3.select("#parkid").on("change", function(){
+  update_ballpark(d3.select("#parkid").property("value"))
+})
+
+//Read the data for plotting batted ball locations
+d3.csv("ALWestBattedBalls2017.csv", function(data) {
+    // List of groups (here I have one group per column)
+    selected = d3.select("#batter_pitcher").property("value")
+    var allGroup = d3.map(data, function(d){return(d[selected])}).keys().sort()
+    var allDate = d3.map(data, function(d){return(d.date)}).keys().sort()
+    var allresult = d3.map(data, function(d){return(d.result_type)}).keys()
+
+    // global variables for LA, startdate and enddate to auto populate date filters in variables above
+    maxLA = d3.max(data, function(d){return parseFloat(d.launch_vert_ang)})
+    minLA = d3.min(data, function(d){return parseFloat(d.launch_vert_ang)})
+    // minLA = d3.min(allLA) 
+    startDate = d3.min(allDate)
+    endDate = d3.max(allDate)
+
+    // date and launch angle filtering, adding all the data and default min/maxes
+    d3.select("#la_min").attr("value", minLA)
+    d3.select("#la_max").attr("value", maxLA)
+
+    d3.select("#datefilter_begin")
+      .selectAll("myOptions")
+      .data(allDate)
+      .enter()
+      .append('option')
+      .text(function (d) { return d;})
+      .attr("value", function(d) {return d;});
+
+    d3.select("#datefilter_end")
+      .selectAll("myOptions")
+      .data(allDate)
+      .enter()
+      .append('option')
+      .text(function (d) { return d;})
+      .attr("value", function(d) {return d;})
+      .property("selected", function(d) { return d === endDate;});
+
+    // add the options to the player select button
+    d3.select("#selectButton")
+      .selectAll('myOptions')
+      .data(allGroup)
+      .enter()
+      .append('option')
+      .text(function (d) { return d; }) // text showed in the menu
+      .attr("value", function (d) { return d; }); // corresponding value returned by the button
+
+    // if switching between batter and pitcher, update the dropdown list of names
+    d3.select("[name=batter_pitcher]").on("change", function(){
+      selected = this.value;
+      var allGroup = d3.map(data, function(d){return(d[selected])}).keys().sort()
+      var update_selected = d3.select("#selectButton").selectAll("option").data(allGroup, function(d){return d;});
+
+      update_selected.exit().remove();
+      update_selected.enter()
+        .append('option')
+        .text(function (d) { return d; }) // text showed in the menu
+        .attr("value", function (d) { return d; }); // corresponding value returned by the button
+      
+      update_selected.transition().duration(0);
+
+      var selectedOption = d3.select("#selectButton").property("value")
+      update(selectedOption)
+    });
+
+    // A color scale: one color for each group of result
+    var myColor = d3.scaleOrdinal()
+      .domain(allresult)
+      .range(d3.schemeSet1);
+
+    // Add Y axis
+    var y = d3.scaleLinear()
+      .domain([d3.min(data, function(d) { return +d.landing_location_y; }), d3.max(data, function(d) { return +d.landing_location_y; })])
+      .range([ height, 0 ]);
+    svg.append("g")
+      .call(d3.axisLeft(y));
+
+    // Add X axis
+    var x = d3.scaleLinear()
+      .domain([d3.min(data, function(d) { return +d.landing_location_x; }), d3.max(data, function(d) { return +d.landing_location_x; })])
+      .range([ 0, width ]);
+    svg.append("g")
+      .attr("transform", "translate(0," + height  + ")")
+      // .call(d3.axisBottom(x).ticks(7));
+
+    // Add the tooltip container to the vis container
+    // it's invisible and its position/contents are defined during mouseover
+    var tooltip = d3.select("#my_dataviz").append("div")
+        .attr("class", "tooltip")
+        .style("opacity", 0);
+
+    // adding all the data that gets put into the tooltip when hovering over the dots
+    var tipMouseover = function(d) {
+        var html  = "<b/> Result: </b>" + d.result_type + "<br/>" +
+                    "<b/> Pitcher: </b>" + d.pitchername + "<br/>" + 
+                    "<b/> Batter: </b>" + d.battername + "<br/>" + 
+                    "<b/> Pitch Speed (Mph): </b>" + d.pitch_speed + "<br/>" + 
+                    "<b/> EV (Mph): </b>" + d.launch_speed + "<br/>" + 
+                    "<b/> Pitch Type: </b>" + d.pitch_type + "<br/>" + 
+                    "<b/> Stadium: </b>" + d.park + "<br/>" + 
+                    "<b/> Landing Location: </b>(" + d.landing_location_x + ", " + d.landing_location_y + ")";
+
+        tooltip.html(html)
+            .style("left", (margin.left) + "px")
+            .style("top", (margin.top) + "px")
+          .transition()
+            .duration(50) // ms
+            .style("opacity", .9) // started as 0!
+      };
+    
+    // tooltip mouseout event handler
+    var tipMouseout = function(d) {
+        tooltip.transition()
+            .duration(50) // ms
+            .style("opacity", 0); // don't care about position!
+      };    
+
+    // getting the ID of the team depending on which batter/pitcher dropdown is selected
+    // this could be improved to pick the most recent team
+    // right now it picks the first team that comes up when the data is sliced but it could be improved by picking the max date
+    team_id = d3.map(data.filter(function(d){return d[selected]==d3.select("#selectButton").property("value")}), function(d){
+      if(selected == "battername")
+        return(d.batterteamid)
+      if(selected == "pitchername")
+        return(d.pitcherteamid)
+    }).keys().sort()
+    // })
+    // console.log(team_id)
+    update_team_logo(team_id[0])
+
+    // getting the ID of the player depending on which batter/pitcher dropdown is selected
+    headshot_id = d3.map(data.filter(function(d){return d[selected]==d3.select("#selectButton").property("value")}), function(d){
+      if(selected == "battername")
+        return(d.batterid)
+      if(selected == "pitchername")
+        return(d.pitcherid)
+    }).keys().sort()
+
+    update_mugshot (headshot_id[0])
+    update_json(headshot_id[0])
+
+    // initiate the graph with the first person in the list
+    update(allGroup[0])
+
+    // A function that update the chart
+    function update(selectedPlayer) {
+      // filtered result types
+      var checked_results = []
+      d3.selectAll("[name=v]").each(function(d){
+        cb = d3.select(this)
+        if(cb.property("checked")){checked_results.push(cb.property("value"));}
+      })
+      // filtered pitch types
+      var checked_pitches = []
+      d3.selectAll("[name=W]").each(function(d){
+        cb = d3.select(this)
+        if(cb.property("checked")){checked_pitches.push(cb.property("value"));}
+      })
+
+      // get team ID for pitcher / batter depending on selection --> used to update image
+      team_id = d3.map(data.filter(function(d){return d[selected]==d3.select("#selectButton").property("value")}), function(d){
+        if(selected == "battername")
+          return(d.batterteamid)
+        if(selected == "pitchername")
+          return(d.pitcherteamid)
+      }).keys().sort()
+      // call the update team logo function given the team ID
+      update_team_logo(team_id[0])
+
+      headshot_id = d3.map(data.filter(function(d){return d[selected]==d3.select("#selectButton").property("value")}), function(d){
+        if(selected == "battername")
+          return(d.batterid)
+        if(selected == "pitchername")
+          return(d.pitcherid)
+      }).keys().sort();
+      // call the update headshot and the json data functions
+      update_mugshot(headshot_id[0]);
+      update_json(headshot_id[0]);
+
+      // data join, selecting the new data based on filters
+      var dataFilter = data.filter(function(d){
+        if( 
+            d[selected] == d3.select("#selectButton").property("value") &&  //playername == selected player 
+            d.date >= startDate && 
+            d.date <= endDate &&
+            parseFloat(d.launch_vert_ang) >= minLA &&
+            parseFloat(d.launch_vert_ang) <= maxLA &&
+            checked_results.includes(d.result_type) && 
+            checked_pitches.includes(d.pitch_type)
+          )
+          return d;
+      });
+
+      // update all the circles on the graph for the new player and filtered data
+      var updatecircles = svg.selectAll("circle").data(dataFilter);
+      
+      // on update, filter out stuff that is unchecked (pitch and result types)
+      var filtered_pitches = d3.selectAll("[name=W]").property("value")
+      var display_pitches =  d3.selectAll("[name=W]").checked ? "inline" : "none";
+      updatecircles.selectAll("circle")
+          .filter(function(d) {return filtered_pitches == d.pitch_type;})
+          .attr("display", display_pitches);
+
+      var filtered_results = d3.selectAll("[name=v]").property("value")
+      var display_results =  d3.selectAll("[name=v]").checked ? "inline" : "none";
+      updatecircles.selectAll("circle")
+          .filter(function(d) {return filtered_results == d.result_type;})
+          .attr("display", display_results);
+
+      // remove old circles from the graph, append it with the new circles & add tooltip
+      updatecircles.exit().remove();
+      updatecircles.enter()
+        .append("circle")
+        .attr("class", ".dot")
+          .attr("cx", function(d) { return x(d.landing_location_x);})
+          .attr("cy", function(d) { return y(d.landing_location_y);})
+          .attr("r", 2.8)
+          .style("fill", function (d) {return myColor(d.result_type); })
+          .on("mouseover", tipMouseover)
+          .on("mouseout", tipMouseout);
+
+      updatecircles.transition().duration(100)
+        .attr("cx", function(d) { return x(d.landing_location_x); })
+        .attr("cy", function(d) { return y(d.landing_location_y); })
+        .style("fill", function (d) { return myColor(d.result_type); });
+    } // end update
+
+
+    ///// CHANGING SELECTED PLAYER BUTTON /////
+    // When the button is changed, run the update function
+    d3.select("#selectButton").on("change", function(d) {
+        // recover the option that has been chosen
+        var selectedOption = d3.select(this).property("value")
+        update(selectedOption)
+    });
+
+    //////// CHANGING SELECTED RESULTS ////////
+    d3.selectAll("[name=v]").on("change", function(d) {
+      var selectedOption = d3.select("#selectButton").property("value")
+      update(selectedOption)
+    })
+    d3.selectAll("[name=W]").on("change", function(d) {
+      var selectedOption = d3.select("#selectButton").property("value")
+      update(selectedOption)
+    });
+    d3.select("#la_min").on("change", function(d){
+      minLA = this.value;
+      update(d3.select("#selectButton").property("value"))
+    });
+    d3.select("#la_max").on("change", function(d){
+      maxLA = this.value;
+      update(d3.select("#selectButton").property("value"))
+    });
+    d3.select("#datefilter_begin").on("change",function() {
+      startDate = d3.select(this).property("value");
+      update(d3.select("#selectButton").property("value"))
+    });
+    d3.select("#datefilter_end").on("change",function() {
+      endDate = d3.select(this).property("value");
+      update(d3.select("#selectButton").property("value"))
+    });
+
+})
+
+
+</script>
